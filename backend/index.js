@@ -1,35 +1,83 @@
+// import express from "express";
+// import dotenv from "dotenv";
+// import colors from "colors";
+// import cors from "cors";
+// import dns from "dns";
+
+// import { carRouter } from "./apis/carApis.js";
+// import { errorHandler } from "./middleWares/errorMiddleware.js";
+// import { connectDB } from "./config/connect.js";
+
+// dotenv.config();
+
+// dns.setServers(["8.8.8.8"]);
+
+// const app = express();
+
+// app.use(
+//   cors({
+//     origin: "http://localhost:5173",
+//   }),
+// );
+
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use("/uploads", express.static("uploads"));
+// // Database
+// connectDB();
+
+// // Uploaded images
+// app.use("/uploads", express.static("uploads"));
+
+// // Car APIs
+// app.use("/", carRouter);
+
+// app.use(errorHandler);
+
+// const PORT = process.env.PORT || 5174;
+
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`.bgGreen.black);
+// });
 import express from "express";
 import dotenv from "dotenv";
-dotenv.config();
 import colors from "colors";
+import cors from "cors";
+import dns from "dns";
+
 import { carRouter } from "./apis/carApis.js";
 import { errorHandler } from "./middleWares/errorMiddleware.js";
 import { connectDB } from "./config/connect.js";
-import dns from "dns";
+
+dotenv.config();
+
 dns.setServers(["8.8.8.8"]);
 
 const app = express();
 
-//convert/parse to join
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  }),
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-//connect to database
-
+// Database
 connectDB();
 
-//apis => cars
+// Uploaded images
+app.use("/uploads", express.static("uploads"));
+
+// Car APIs
 app.use("/", carRouter);
 
 app.use(errorHandler);
 
-app.listen(process.env.PORT, () => {
-  console.log(`Server is running on port ${process.env.PORT}`.bgGreen.black);
-});
+// Frontend uses 5274
+const PORT = process.env.PORT || 5274;
 
-// details:
-// 2 navbar at first, with search bar and filter options,
-// 2nd navbar with car brands and with brand cars are filtered and displayed in the home page,
-// then the home page scrolling horrizontally with the cards of the cars,
-// available cars option and below them there should be cars of all category...
-// in the last there should be a footer with the contact us and about us and other details,
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`.bgGreen.black);
+});

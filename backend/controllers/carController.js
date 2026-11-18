@@ -1,76 +1,121 @@
 import { Car } from "../models/carModel.js";
 
-export const registerCar = async (req, res) => {
-  const { name, model, year, color, price, mileage, description, image } =
-    req.body || {};
+// ================= ADD CAR =================
 
-  if (
-    !image ||
-    !name ||
-    !model ||
-    !year ||
-    !color ||
-    !price ||
-    !mileage ||
-    !description
-  ) {
-    return res.status(400).json({
-      message: "Please fill all the fields",
+export const registerCar = async (req, res) => {
+  try {
+    const { name, model, year, color, price, mileage, description } = req.body;
+
+    // Images come from multer (upload.array)
+    const files = req.files;
+
+    if (
+      !files ||
+      files.length === 0 ||
+      !name ||
+      !model ||
+      !year ||
+      !color ||
+      !price ||
+      !mileage ||
+      !description
+    ) {
+      return res.status(400).json({
+        message: "Please fill all the fields and select at least one image",
+      });
+    }
+
+    // Check duplicate
+    const findCar = await Car.findOne({
+      $or: [{ name: name }, { model: model }],
+    });
+
+    if (findCar) {
+      return res.status(400).json({
+        message: "Car with the same name or model already exists",
+      });
+    }
+
+    const imageUrls = files.map((file) => `/uploads/${file.filename}`);
+
+    const createCar = await Car.create({
+      image: imageUrls[0], // cover photo
+      images: imageUrls, // all photos
+      name,
+      model,
+      year,
+      color,
+      price,
+      mileage,
+      description,
+    });
+
+    return res.status(201).json({
+      message: "Car added successfully",
+      car: createCar,
+    });
+  } catch (error) {
+    console.log("REGISTER CAR ERROR:", error);
+
+    return res.status(500).json({
+      message: error.message || "Failed to add car",
     });
   }
-
-  let findCar = await Car.findOne({
-    $or: [{ name }, { model }, { year }],
-  });
-
-  if (findCar) {
-    res.status(400);
-    throw new Error("Car with the same name, model, or year already exists");
-  }
-
-  let createCar = await Car.create({
-    image,
-    name,
-    model,
-    year,
-    color,
-    price,
-    mileage,
-    description,
-  });
-
-  return res.status(201).json({
-    message: "Car added successfully",
-    car: createCar,
-  });
 };
 
-// export const getCarController = async (req, res) => {
-//   const { name, model } = req.body;
+// ================= GET ALL CARS =================
 
-//   let findCar = await Car.findOne({ name, model });
+export const getCarsController = async (req, res) => {
+  try {
+    const { search } = req.query;
 
-//   if (!findCar) {
-//     res.status(404);
-//     throw new Error("Invalid car name or model");
-//   }
+    let filter = {};
 
-//   if (model == findCar.model) {
-//     res.send(findCar);
-//   } else {
-//     res.status(401);
-//     throw new Error("Invalid Creddentials");
-//   }
-// };
-export const getCarController = async (req, res) => {
-  const { name, model } = req.query;
+    // Search by name OR model
+    if (search && search.trim()) {
+      // Escape special characters like ( ) + * so search does not break
+      const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-  let findCar = await Car.findOne({ name, model });
+      filter = {
+        $or: [
+          { name: { $regex: safeSearch, $options: "i" } },
+          { model: { $regex: safeSearch, $options: "i" } },
+        ],
+      };
+    }
 
-  if (!findCar) {
-    res.status(404);
-    throw new Error("Invalid car name or model");
+    const cars = await Car.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json(cars);
+  } catch (error) {
+    console.log("GET CARS ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch cars",
+    });
   }
+};
 
-  res.send(findCar);
+// ================= GET SINGLE CAR =================
+
+export const getSingleCarController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const car = await Car.findById(id);
+
+    if (!car) {
+      return res.status(404).json({
+        message: "Car not found",
+      });
+    }
+
+    res.status(200).json(car);
+  } catch (error) {
+    console.log("GET SINGLE CAR ERROR:", error);
+
+    res.status(500).json({
+      message: "Failed to fetch car",
+    });
+  }
 };
